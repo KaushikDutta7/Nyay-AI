@@ -50,7 +50,7 @@ class CaseHearing(Base):
 
     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
     case_id = Column(String, ForeignKey("cases.id"), nullable=False)
-    hearing_date = Column(DateTime, nullable=False)
+    hearing_date = Column(DateTime(timezone=True), nullable=False)
     note = Column(String, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
 

@@ -3,7 +3,7 @@ import shutil
 import json
 import uuid
 from typing import Optional
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from urllib.parse import quote
 from fastapi import FastAPI, UploadFile, File, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -241,6 +241,13 @@ def create_case(request: NewCaseRequest, db: Session = Depends(get_db)):
 
     return {"case_id": case_id, "name": request.name}
 
+def to_utc_iso(dt):
+    """Always return an ISO string explicitly marked as UTC, so the frontend
+    (and any calendar app) never mis-reads it as local time."""
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    return dt.astimezone(timezone.utc).isoformat().replace("+00:00", "Z")
+
 
 @app.get("/case/{case_id}/hearings")
 def list_hearings(case_id: str, db: Session = Depends(get_db)):
@@ -265,7 +272,7 @@ def list_hearings(case_id: str, db: Session = Depends(get_db)):
     return [
         {
             "id": h.id,
-            "hearing_date": h.hearing_date.isoformat(),
+            "hearing_date": to_utc_iso(h.hearing_date),
             "note": h.note,
             "google_calendar_url": google_link(h),
             "ics_url": f"/case/{case_id}/hearings/{h.id}/calendar.ics",
