@@ -4,6 +4,7 @@ import AnalysisPage from './pages/AnalysisPage'
 import ReportPage from './pages/ReportPage'
 import DashboardPage from './pages/DashboardPage'
 import CaseQAPage from './pages/CaseQAPage'
+import HistoryPage from './pages/HistoryPage'
 import PageTransition from './components/PageTransition'
 
 export default function App() {
@@ -15,6 +16,7 @@ export default function App() {
         <Route path="/report"              element={<PageTransition><ReportPage /></PageTransition>} />
         <Route path="/dashboard"           element={<PageTransition><DashboardPage /></PageTransition>} />
         <Route path="/case/:caseId/qa"     element={<PageTransition><CaseQAPage /></PageTransition>} />
+        <Route path="/history"             element={<PageTransition><HistoryPage /></PageTransition>} />
         <Route path="*"                    element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>

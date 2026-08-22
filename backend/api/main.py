@@ -167,6 +167,8 @@ def get_all_cases(db: Session = Depends(get_db)):
         desc = c.case_description[:100] + "..." if len(c.case_description) > 100 else c.case_description
         result.append({
             "case_id": c.id,
+            "name": c.name,
+            "purpose": c.purpose,
             "input_type": c.input_type.value,
             "status": c.status.value,
             "created_at": str(c.created_at),

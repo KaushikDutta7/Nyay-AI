@@ -66,9 +66,18 @@ export default function DashboardPage() {
         >
           Nyaya<span style={{ color: '#C8A951', fontStyle: 'italic' }}>AI</span>
         </button>
-        <span className="font-ui text-xs font-medium tracking-widest uppercase" style={{ color: 'rgba(240,236,228,0.3)' }}>
-          Case Dashboard
-        </span>
+        <div className="flex items-center gap-5">
+          <button
+            onClick={() => navigate('/history')}
+            className="font-ui text-xs font-medium"
+            style={{ color: 'rgba(240,236,228,0.4)', background: 'none', border: 'none', cursor: 'pointer' }}
+          >
+            View history
+          </button>
+          <span className="font-ui text-xs font-medium tracking-widest uppercase" style={{ color: 'rgba(240,236,228,0.3)' }}>
+            Case Dashboard
+          </span>
+        </div>
       </nav>
 
       <div className="relative z-10 max-w-2xl mx-auto px-4 pb-20" style={{ animation: 'fadeUp 0.6s ease 0.1s both' }}>

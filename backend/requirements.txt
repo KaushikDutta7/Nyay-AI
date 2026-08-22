@@ -8,3 +8,4 @@ pydantic
 SQLAlchemy
 pdfplumber
 groq
+psycopg2-binary
