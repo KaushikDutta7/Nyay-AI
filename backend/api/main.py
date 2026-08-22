@@ -5,6 +5,7 @@ from fastapi import FastAPI, UploadFile, File, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
+from typing import Optional
 from core.pipeline import NyayAIPipeline
 from database.connection import get_db, init_db
 from database.models import Case, InputType, StatusType
@@ -36,8 +37,7 @@ def startup():
 
 class TextRequest(BaseModel):
     description: str
-    court_type: str = None
-
+    court_type: Optional[str] = None
 
 class ReportResponse(BaseModel):
     case_id: str
@@ -56,7 +56,7 @@ def root():
     return {"message": "Welcome to NyayAI — Autonomous Legal Research Agent"}
 
 
-@app.post("/analyze/text", response_model=ReportResponse)
+@app.post("/analyze/text")
 def analyze_text(request: TextRequest, db: Session = Depends(get_db)):
     case_id = str(uuid.uuid4())
     case = Case(
@@ -73,18 +73,18 @@ def analyze_text(request: TextRequest, db: Session = Depends(get_db)):
         if not pipeline:
             raise HTTPException(status_code=500, detail="Pipeline not initialized")
 
-        report = pipeline.run_from_text(
+        result = pipeline.run_from_text(
             case_description=request.description, court_type=request.court_type
         )
 
         db.query(Case).filter(Case.id == case_id).update({
-            "final_report": report,
+            "final_report": result.get("argument", ""),
             "status": StatusType.completed
         })
-        case.final_report = report
+        case.final_report = result.get("argument", "")
         case.status = StatusType.completed
         db.commit()
-        return ReportResponse(case_id=case_id, report=report, status="completed")
+        return {"case_id": case_id, "status": "completed", **result}
 
     except Exception as e:
         case.status = StatusType.failed
@@ -93,7 +93,7 @@ def analyze_text(request: TextRequest, db: Session = Depends(get_db)):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.post("/analyze/pdf", response_model=ReportResponse)
+@app.post("/analyze/pdf")
 async def analyze_pdf(file: UploadFile = File(...), db: Session = Depends(get_db)):
     case_id = str(uuid.uuid4())
     temp_path = f"temp_{case_id}_{file.filename}"
@@ -115,12 +115,12 @@ async def analyze_pdf(file: UploadFile = File(...), db: Session = Depends(get_db
         if not pipeline:
             raise HTTPException(status_code=500, detail="Pipeline not initialized")
 
-        report = pipeline.run_from_pdf(pdf_path=temp_path)
-        case.final_report = report
+        result = pipeline.run_from_pdf(pdf_path=temp_path)
+        case.final_report = result.get("argument", "")
         case.case_description = f"PDF: {file.filename}"
         case.status = StatusType.completed
         db.commit()
-        return ReportResponse(case_id=case_id, report=report, status="completed")
+        return {"case_id": case_id, "status": "completed", **result}
 
     except Exception as e:
         case.status = StatusType.failed

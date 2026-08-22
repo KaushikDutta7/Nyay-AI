@@ -1,12 +1,12 @@
+"""
+Starts the NyayAI FastAPI server.
+Run with:  python run.py   (from inside the backend/ directory)
+Equivalent to: uvicorn api.main:app --reload
+"""
 from dotenv import load_dotenv
-from core.pipeline import NyayAIPipeline
+import uvicorn
 
 load_dotenv()
 
-
 if __name__ == "__main__":
-    pipeline = NyayAIPipeline()
-    report = pipeline.run(
-        "A tenant has not paid rent for 6 months and the landlord wants to evict him in Mumbai"
-    )
-    print(report)
+    uvicorn.run("api.main:app", host="0.0.0.0", port=8000, reload=True)

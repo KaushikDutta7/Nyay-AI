@@ -8,11 +8,69 @@ from agents import (
 )
 from core.models import AgentState, CaseInput
 import time
+import re
 from dotenv import load_dotenv
 from typing import Optional
 
 load_dotenv()
- 
+
+
+def _build_frontend_result(state, case_description: str, judge_name: Optional[str]):
+    """Reshape raw pipeline state into the JSON structure the React frontend expects."""
+
+    # --- Precedents ---
+    precedents = []
+    for j in getattr(state, "judgements", []) or []:
+        date_str = str(getattr(j, "date", "") or "")
+        year_match = re.search(r"(19|20)\d{2}", date_str)
+        precedents.append({
+            "title": getattr(j, "title", "Untitled Judgement"),
+            "court": getattr(j, "court", "Indian Court"),
+            "year": year_match.group(0) if year_match else date_str,
+            "principle": getattr(j, "snippet", ""),
+            "citations": 0,
+        })
+
+    # --- Outcome (parsed from the Prediction Agent's free text) ---
+    prediction_text = state.prediction or ""
+    pct_match = re.search(r"(\d{1,3})\s?%", prediction_text)
+    success_rate = int(pct_match.group(1)) if pct_match else 50
+    success_rate = max(0, min(success_rate, 100))
+    verdict = "Favourable" if success_rate >= 50 else "Unfavourable"
+
+    outcome = {
+        "verdict": verdict,
+        "success_rate": success_rate,
+        "similar_cases": len(precedents),
+        "risk": prediction_text[:400] if prediction_text else "No prediction available.",
+        "successful_arguments": [],
+        "failed_arguments": [],
+    }
+
+    # --- Judge profile (best-effort; we don't have a real judge database) ---
+    courts = [p["court"] for p in precedents if p.get("court")]
+    common_court = max(set(courts), key=courts.count) if courts else "Indian Judiciary"
+    analysis_text = state.analysis or ""
+    tips = [s.strip() for s in re.split(r"(?<=[.!?])\s+", analysis_text) if s.strip()][:3]
+
+    judge_profile = {
+        "name": judge_name or "Presiding Judge (Not Specified)",
+        "court": common_court,
+        "favour_rate": success_rate,
+        "temperament": "Precedent-focused, evidence-driven approach based on retrieved case patterns.",
+        "tips": tips,
+        "landmark": precedents[0]["title"] if precedents else None,
+    }
+
+    return {
+        "case_description": case_description,
+        "judge_name": judge_name,
+        "outcome": outcome,
+        "precedents": precedents,
+        "argument": state.final_report,
+        "judge_profile": judge_profile,
+    }
+
 
 class NyayAIPipeline:
     def __init__(self):
@@ -69,7 +127,7 @@ class NyayAIPipeline:
         state = self._run_agent(self.drafting_agent, "Drafting Agent", state)
 
         print("\n✅ Pipeline Complete!\n")
-        return state.final_report
+        return _build_frontend_result(state, case_description.strip(), court_type)
 
     def run_from_pdf(self, pdf_path: str, court_type: Optional[str] = None):
         print("\n🚀 NyayAI Pipeline Starting from PDF...\n")
@@ -91,4 +149,6 @@ class NyayAIPipeline:
         state = self._run_agent(self.drafting_agent, "Drafting Agent", state)
 
         print("\n✅ Pipeline Complete!\n")
-        return state.final_report
+        return _build_frontend_result(
+            state, state.case_input.description or f"PDF: {pdf_path}", court_type
+        )

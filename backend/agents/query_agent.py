@@ -1,12 +1,8 @@
-from google import genai
-import os
+from utils.llm_client import generate_text
 import json
 from core.models import CaseInput, AgentState
 
 class QueryAgent:
-    def __init__(self):
-        self.client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
-
     def run(self, state: AgentState) -> AgentState:
         print("🔍 Query Agent: Extracting legal keywords...")
         prompt = f"""
@@ -24,10 +20,13 @@ class QueryAgent:
             "legal_concepts": ["concept1", "concept2"]
         }}
         """
-        response = self.client.models.generate_content(
-            model="gemini-2.0-flash-lite", contents=prompt
-        )
-        response_text = response.text.strip()
+        response_text = generate_text(prompt).strip()
+        # Strip markdown code fences in case the model wraps the JSON anyway
+        if response_text.startswith("```"):
+            response_text = response_text.strip("`")
+            if response_text.lower().startswith("json"):
+                response_text = response_text[4:].strip()
+
         parsed = json.loads(response_text)
         all_keywords = (
             parsed.get("keywords", []) +

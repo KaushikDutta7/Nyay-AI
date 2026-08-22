@@ -1,11 +1,7 @@
-from google import genai
-import os
+from utils.llm_client import generate_text
 from core.models import AgentState
 
 class AnalysisAgent:
-    def __init__(self):
-        self.client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
-
     def run(self, state: AgentState) -> AgentState:
         print("⚖️ Analysis Agent: Analyzing judgements...")
         judgements_text = ""
@@ -33,9 +29,6 @@ class AnalysisAgent:
         3. Most relevant precedents and why
         4. Any conflicting judgements to be aware of
         """
-        response = self.client.models.generate_content(
-            model="gemini-2.0-flash-lite", contents=prompt
-        )
-        state.analysis = response.text
+        state.analysis = generate_text(prompt)
         print("✅ Analysis complete")
         return state

@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 
 
 class CaseInput(BaseModel):
@@ -23,4 +23,5 @@ class AgentState(BaseModel):
     judgements: List[Judgement] = []
     analysis: str = ""
     prediction: str = ""
+    structured_outcome: Dict[str, Any] = {}   # ← new: populated by PredictionAgent
     final_report: str = ""

@@ -1,11 +1,7 @@
-from google import genai
-import os
+from utils.llm_client import generate_text
 from core.models import AgentState
 
 class PredictionAgent:
-    def __init__(self):
-        self.client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
-
     def run(self, state: AgentState) -> AgentState:
         print("🔮 Prediction Agent: Predicting case outcome...")
         prompt = f"""
@@ -24,9 +20,6 @@ class PredictionAgent:
         3. Key factors that could change the outcome
         4. Recommended course of action
         """
-        response = self.client.models.generate_content(
-            model="gemini-2.0-flash-lite", contents=prompt
-        )
-        state.prediction = response.text
+        state.prediction = generate_text(prompt)
         print("✅ Prediction complete")
         return state

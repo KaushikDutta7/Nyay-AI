@@ -36,10 +36,10 @@ export function useAnalysis() {
     let backendPromise
 
     try {
-      backendPromise = axios.post(`${API_URL}/analyse`, {
-        case_description: caseDescription,
-        judge_name: judgeName,
-      }, { timeout: 90000 })
+      backendPromise = axios.post(`${API_URL}/analyze/text`, {
+  description: caseDescription,
+  court_type: judgeName || null,
+}, { timeout: 90000 })
     } catch {
       backendPromise = Promise.reject(new Error('Network'))
     }
