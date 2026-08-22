@@ -16,9 +16,6 @@ load_dotenv()
 
 
 def _build_frontend_result(state, case_description: str, judge_name: Optional[str]):
-    """Reshape raw pipeline state into the JSON structure the React frontend expects."""
-
-    # --- Precedents ---
     precedents = []
     for j in getattr(state, "judgements", []) or []:
         date_str = str(getattr(j, "date", "") or "")
@@ -31,7 +28,6 @@ def _build_frontend_result(state, case_description: str, judge_name: Optional[st
             "citations": 0,
         })
 
-    # --- Outcome (parsed from the Prediction Agent's free text) ---
     prediction_text = state.prediction or ""
     pct_match = re.search(r"(\d{1,3})\s?%", prediction_text)
     success_rate = int(pct_match.group(1)) if pct_match else 50
@@ -47,7 +43,6 @@ def _build_frontend_result(state, case_description: str, judge_name: Optional[st
         "failed_arguments": [],
     }
 
-    # --- Judge profile (best-effort; we don't have a real judge database) ---
     courts = [p["court"] for p in precedents if p.get("court")]
     common_court = max(set(courts), key=courts.count) if courts else "Indian Judiciary"
     analysis_text = state.analysis or ""

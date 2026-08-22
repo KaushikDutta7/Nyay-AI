@@ -23,5 +23,5 @@ class AgentState(BaseModel):
     judgements: List[Judgement] = []
     analysis: str = ""
     prediction: str = ""
-    structured_outcome: Dict[str, Any] = {}   # ← new: populated by PredictionAgent
+    structured_outcome: Dict[str, Any] = {}
     final_report: str = ""

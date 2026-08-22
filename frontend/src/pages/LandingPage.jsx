@@ -283,6 +283,8 @@ export default function LandingPage() {
           </div>
         </div>
 
+        <button onClick={() => navigate('/dashboard')}>Manage My Cases</button>
+
         {/* Example cases */}
         <div
           className="w-full max-w-2xl mt-5"

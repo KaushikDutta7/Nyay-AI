@@ -1,15 +1,19 @@
 import os
 import shutil
+import json
+import uuid
 from typing import Optional
+from datetime import datetime, timedelta
 from fastapi import FastAPI, UploadFile, File, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import Response
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
-from typing import Optional
+
 from core.pipeline import NyayAIPipeline
 from database.connection import get_db, init_db
-from database.models import Case, InputType, StatusType
-import uuid
+from database.models import Case, InputType, StatusType, CaseHearing, CaseQuery
+from utils.llm_client import generate_text
 
 app = FastAPI(
     title="NyayAI",
@@ -28,16 +32,18 @@ app.add_middleware(
 @app.on_event("startup")
 def startup():
     init_db()
-    # lazily initialize the pipeline at startup so imports and envvars are ready
     try:
         app.state.pipeline = NyayAIPipeline()
     except Exception:
         app.state.pipeline = None
 
 
+# ── Request/response models ──────────────────────────────
+
 class TextRequest(BaseModel):
     description: str
     court_type: Optional[str] = None
+
 
 class ReportResponse(BaseModel):
     case_id: str
@@ -45,16 +51,25 @@ class ReportResponse(BaseModel):
     status: str
 
 
-class ErrorResponse(BaseModel):
-    case_id: str
-    error: str
-    status: str
+class NewCaseRequest(BaseModel):
+    name: str
+    description: str
+    purpose: str
+    hearing_dates: list[datetime] = []
 
+
+class AskRequest(BaseModel):
+    question: str
+
+
+# ── Basic routes ──────────────────────────────────────────
 
 @app.get("/")
 def root():
     return {"message": "Welcome to NyayAI — Autonomous Legal Research Agent"}
 
+
+# ── Original single-shot analysis routes ─────────────────
 
 @app.post("/analyze/text")
 def analyze_text(request: TextRequest, db: Session = Depends(get_db)):
@@ -149,13 +164,172 @@ def get_all_cases(db: Session = Depends(get_db)):
     result = []
     for c in cases:
         desc = c.case_description[:100] + "..." if len(c.case_description) > 100 else c.case_description
-        result.append(
-            {
-                "case_id": c.id,
-                "input_type": c.input_type.value,
-                "status": c.status.value,
-                "created_at": str(c.created_at),
-                "case_description": desc,
-            }
-        )
+        result.append({
+            "case_id": c.id,
+            "input_type": c.input_type.value,
+            "status": c.status.value,
+            "created_at": str(c.created_at),
+            "case_description": desc,
+        })
     return result
+
+
+# ── Dashboard / scheduling / Q&A routes ──────────────────
+
+@app.post("/cases/new")
+def create_case(request: NewCaseRequest, db: Session = Depends(get_db)):
+    case_id = str(uuid.uuid4())
+    case = Case(
+        id=case_id,
+        input_type=InputType.text,
+        case_description=request.description,
+        name=request.name,
+        purpose=request.purpose,
+        status=StatusType.processing,
+    )
+    db.add(case)
+    db.commit()
+
+    for hd in request.hearing_dates:
+        db.add(CaseHearing(id=str(uuid.uuid4()), case_id=case_id, hearing_date=hd))
+    db.commit()
+
+    try:
+        pipeline = getattr(app.state, "pipeline", None)
+        if pipeline:
+            full_text = f"{request.description}\n\nPurpose: {request.purpose}"
+            result = pipeline.run_from_text(case_description=full_text, court_type=None)
+            case.final_report = result.get("argument", "")
+            case.analysis = result.get("outcome", {}).get("risk", "")
+            case.status = StatusType.completed
+            db.commit()
+    except Exception as e:
+        case.status = StatusType.failed
+        case.error_message = str(e)
+        db.commit()
+
+    return {"case_id": case_id, "name": request.name}
+
+
+@app.get("/case/{case_id}/hearings")
+def list_hearings(case_id: str, db: Session = Depends(get_db)):
+    hearings = db.query(CaseHearing).filter(CaseHearing.case_id == case_id).order_by(CaseHearing.hearing_date).all()
+    return [{"id": h.id, "hearing_date": h.hearing_date.isoformat(), "note": h.note} for h in hearings]
+
+
+@app.get("/case/{case_id}/hearings/{hearing_id}/calendar.ics")
+def hearing_ics(case_id: str, hearing_id: str, db: Session = Depends(get_db)):
+    hearing = db.query(CaseHearing).filter(CaseHearing.id == hearing_id, CaseHearing.case_id == case_id).first()
+    if not hearing:
+        raise HTTPException(status_code=404, detail="Hearing not found")
+    case = db.query(Case).filter(Case.id == case_id).first()
+
+    start = hearing.hearing_date
+    end = start + timedelta(hours=1)
+    dtstamp = datetime.utcnow().strftime("%Y%m%dT%H%M%SZ")
+    fmt = lambda dt: dt.strftime("%Y%m%dT%H%M%S")
+    title = case.name or "Court Hearing"
+
+    ics_content = f"""BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//NyayaAI//Legal Case Scheduler//EN
+BEGIN:VEVENT
+UID:{hearing_id}@nyayai
+DTSTAMP:{dtstamp}
+DTSTART:{fmt(start)}
+DTEND:{fmt(end)}
+SUMMARY:Hearing — {title}
+DESCRIPTION:{(case.purpose or '')}\\nCase ID: {case_id}
+END:VEVENT
+END:VCALENDAR"""
+
+    return Response(
+        content=ics_content,
+        media_type="text/calendar",
+        headers={"Content-Disposition": f"attachment; filename=hearing_{hearing_id}.ics"},
+    )
+
+
+@app.get("/case/{case_id}/full-analysis")
+def get_full_analysis(case_id: str, db: Session = Depends(get_db)):
+    case = db.query(Case).filter(Case.id == case_id).first()
+    if not case:
+        raise HTTPException(status_code=404, detail="Case not found")
+    return {
+        "case_id": case.id,
+        "name": case.name,
+        "purpose": case.purpose,
+        "description": case.case_description,
+        "analysis": case.analysis,
+        "final_report": case.final_report,
+        "status": case.status.value,
+    }
+
+
+@app.get("/case/{case_id}/suggested-questions")
+def suggested_questions(case_id: str, db: Session = Depends(get_db)):
+    case = db.query(Case).filter(Case.id == case_id).first()
+    if not case:
+        raise HTTPException(status_code=404, detail="Case not found")
+
+    prompt = f"""
+    You are a senior Indian litigation strategist reviewing this case file.
+
+    Case Name: {case.name}
+    Purpose: {case.purpose}
+    Description: {case.case_description}
+    Analysis so far: {case.analysis or "Not yet analyzed"}
+
+    Suggest the 5 most important, case-specific questions a lawyer preparing
+    this case should ask next. Make them concrete and specific to THIS case's
+    facts, not generic legal questions.
+
+    Respond ONLY with a JSON array of 5 strings, no extra text, no markdown,
+    no backticks. Example format:
+    ["question 1", "question 2", "question 3", "question 4", "question 5"]
+    """
+    raw = generate_text(prompt).strip()
+    if raw.startswith("```"):
+        raw = raw.strip("`")
+        if raw.lower().startswith("json"):
+            raw = raw[4:].strip()
+
+    try:
+        questions = json.loads(raw)
+    except Exception:
+        questions = [raw]
+
+    return {"case_id": case_id, "suggested_questions": questions}
+
+
+@app.post("/case/{case_id}/ask")
+def ask_case_question(case_id: str, request: AskRequest, db: Session = Depends(get_db)):
+    case = db.query(Case).filter(Case.id == case_id).first()
+    if not case:
+        raise HTTPException(status_code=404, detail="Case not found")
+
+    context = f"""
+    You are a legal assistant answering questions about a specific case file.
+
+    Case Name: {case.name}
+    Purpose: {case.purpose}
+    Description: {case.case_description}
+    {"Prior Research Report: " + case.final_report if case.final_report else ""}
+
+    Question: {request.question}
+
+    Answer clearly and concisely based on the case details above.
+    """
+    answer = generate_text(context)
+
+    q = CaseQuery(id=str(uuid.uuid4()), case_id=case_id, question=request.question, answer=answer)
+    db.add(q)
+    db.commit()
+
+    return {"question": request.question, "answer": answer}
+
+
+@app.get("/case/{case_id}/qa")
+def get_case_qa(case_id: str, db: Session = Depends(get_db)):
+    rows = db.query(CaseQuery).filter(CaseQuery.case_id == case_id).order_by(CaseQuery.created_at).all()
+    return [{"question": r.question, "answer": r.answer, "created_at": str(r.created_at)} for r in rows]
