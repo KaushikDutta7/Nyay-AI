@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>NyayaAI — India's Autonomous Legal Research Agent</title>
+    <meta name="description" content="Autonomous AI research agent for the Indian judiciary. Precedent search, argument drafting, outcome prediction." />
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400;1,500;1,600&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,300&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet" />
+
+    <style>
+      *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+      html { scroll-behavior: smooth; }
+      body {
+        background: #080808;
+        color: #f0ece4;
+        min-height: 100vh;
+        overflow-x: hidden;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        cursor: default;
+      }
+      ::-webkit-scrollbar { width: 3px; }
+      ::-webkit-scrollbar-track { background: #080808; }
+      ::-webkit-scrollbar-thumb { background: #C8A951; border-radius: 2px; }
+      ::selection { background: rgba(200,169,81,0.25); color: #f0ece4; }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>

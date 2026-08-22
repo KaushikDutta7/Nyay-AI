@@ -1,0 +1,279 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ─── CSS custom properties ──────────────────────────────── */
+:root {
+  --gold: #C8A951;
+  --gold-dim: rgba(200,169,81,0.4);
+  --gold-glow: rgba(200,169,81,0.12);
+  --border: rgba(240,236,228,0.07);
+  --border-gold: rgba(200,169,81,0.3);
+}
+
+/* ─── Typography scale ───────────────────────────────────── */
+.font-display { font-family: 'Cormorant Garamond', serif; }
+.font-ui      { font-family: 'DM Sans', sans-serif; }
+.font-mono    { font-family: 'JetBrains Mono', monospace; }
+
+/* ─── Glass card ─────────────────────────────────────────── */
+.glass {
+  background: rgba(15,15,15,0.8);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--border);
+}
+
+.glass-gold {
+  background: rgba(200,169,81,0.05);
+  border: 1px solid var(--border-gold);
+}
+
+/* ─── Gradient text ──────────────────────────────────────── */
+.text-gradient-gold {
+  background: linear-gradient(135deg, #C8A951 0%, #E8C96A 50%, #A88A3A 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ─── Shimmer scan for active agent ─────────────────────── */
+.shimmer-scan::after {
+  content: '';
+  position: absolute;
+  top: 0; left: 0;
+  width: 40%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(200,169,81,0.06), transparent);
+  animation: shimmerMove 1.8s ease-in-out infinite;
+}
+
+@keyframes shimmerMove {
+  0%   { transform: translateX(-100%); }
+  100% { transform: translateX(400%); }
+}
+
+/* ─── Scanning line ──────────────────────────────────────── */
+.scan-line {
+  position: absolute;
+  width: 100%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--gold), transparent);
+  animation: scanDown 2s ease-in-out infinite;
+  opacity: 0.6;
+}
+@keyframes scanDown {
+  0%   { top: 0%; opacity: 0; }
+  10%  { opacity: 0.6; }
+  90%  { opacity: 0.6; }
+  100% { top: 100%; opacity: 0; }
+}
+
+/* ─── Glow effects ───────────────────────────────────────── */
+.glow-gold {
+  box-shadow: 0 0 30px rgba(200,169,81,0.15), 0 0 60px rgba(200,169,81,0.05);
+}
+.glow-gold-sm {
+  box-shadow: 0 0 12px rgba(200,169,81,0.2);
+}
+.text-glow {
+  text-shadow: 0 0 40px rgba(200,169,81,0.3);
+}
+
+/* ─── Vertical progress line ─────────────────────────────── */
+.progress-line {
+  position: absolute;
+  left: 19px;
+  top: 40px;
+  width: 1px;
+  background: linear-gradient(to bottom, var(--gold), transparent);
+  transition: height 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ─── Status dot animation ───────────────────────────────── */
+.status-running {
+  animation: pulseGoldDot 1.2s ease-in-out infinite;
+}
+@keyframes pulseGoldDot {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(200,169,81,0.5); }
+  50%       { box-shadow: 0 0 0 6px rgba(200,169,81,0); }
+}
+
+/* ─── Typing cursor ──────────────────────────────────────── */
+.typing-cursor {
+  display: inline-block;
+  width: 2px;
+  height: 1em;
+  background: var(--gold);
+  margin-left: 2px;
+  vertical-align: text-bottom;
+  animation: blink 1s step-end infinite;
+}
+@keyframes blink { 0%,100%{ opacity:1 } 50%{ opacity:0 } }
+
+/* ─── Collapsible section ────────────────────────────────── */
+.collapsible-content {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+              opacity 0.3s ease;
+  opacity: 0;
+}
+.collapsible-content.open {
+  max-height: 3000px;
+  opacity: 1;
+}
+
+/* ─── Staggered entrance ─────────────────────────────────── */
+.stagger-1 { animation-delay: 0.1s; }
+.stagger-2 { animation-delay: 0.2s; }
+.stagger-3 { animation-delay: 0.3s; }
+.stagger-4 { animation-delay: 0.4s; }
+.stagger-5 { animation-delay: 0.5s; }
+.stagger-6 { animation-delay: 0.6s; }
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(24px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes pageEnter {
+  from { opacity: 0; transform: translateY(10px) scale(0.99); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* ─── Perspective 3D container ───────────────────────────── */
+.perspective-card {
+  transform-style: preserve-3d;
+  transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.perspective-card:hover {
+  transform: perspective(800px) rotateX(-1.5deg) rotateY(1.5deg) scale(1.01);
+}
+
+/* ─── Input focus ring ───────────────────────────────────── */
+.input-focus-ring {
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+.input-focus-ring:focus-within {
+  border-color: var(--border-gold);
+  box-shadow: 0 0 0 1px rgba(200,169,81,0.2), 0 4px 24px rgba(0,0,0,0.4);
+}
+
+/* ─── Horizontal rule ────────────────────────────────────── */
+.rule {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--border), transparent);
+}
+
+/* ─── Agent card active state ────────────────────────────── */
+.agent-active {
+  border-color: var(--border-gold) !important;
+  background: rgba(200,169,81,0.04) !important;
+}
+
+.agent-done {
+  border-color: rgba(76,175,100,0.3) !important;
+  background: rgba(76,175,100,0.03) !important;
+}
+
+/* ─── 3D floating badge ──────────────────────────────────── */
+@keyframes floatBadge {
+  0%, 100% { transform: translateY(0) rotate(-1deg); }
+  50%       { transform: translateY(-8px) rotate(1deg); }
+}
+
+/* ─── Canvas overlay ─────────────────────────────────────── */
+canvas { display: block; }
+
+/* ─── Section label ──────────────────────────────────────── */
+.section-label {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgba(240,236,228,0.3);
+}
+
+/* ─── Backdrop grid ──────────────────────────────────────── */
+.bg-grid {
+  background-image:
+    linear-gradient(rgba(200,169,81,0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(200,169,81,0.03) 1px, transparent 1px);
+  background-size: 48px 48px;
+}
+
+/* ─── Noise grain ────────────────────────────────────────── */
+.grain::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+  pointer-events: none;
+  z-index: 100;
+  opacity: 0.4;
+}
+
+/* ─── PDF viewer / preformatted ──────────────────────────── */
+.argument-text {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12.5px;
+  line-height: 2;
+  color: rgba(240,236,228,0.7);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+/* ─── Button states ──────────────────────────────────────── */
+.btn-gold {
+  background: var(--gold);
+  color: #080808;
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  transition: all 0.2s ease;
+}
+.btn-gold:hover {
+  background: #E8C96A;
+  box-shadow: 0 4px 20px rgba(200,169,81,0.3);
+  transform: translateY(-1px);
+}
+.btn-gold:active {
+  transform: translateY(0);
+}
+
+.btn-outline {
+  border: 1px solid var(--border);
+  color: rgba(240,236,228,0.6);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px;
+  transition: all 0.2s ease;
+}
+.btn-outline:hover {
+  border-color: var(--border-gold);
+  color: var(--gold);
+  background: var(--gold-glow);
+}
+
+/* ─── Precedent card ─────────────────────────────────────── */
+.precedent-card {
+  border: 1px solid rgba(240,236,228,0.06);
+  background: rgba(15,15,15,0.6);
+  transition: all 0.2s ease;
+  animation: fadeUp 0.5s ease both;
+}
+.precedent-card:hover {
+  border-color: rgba(200,169,81,0.25);
+  background: rgba(200,169,81,0.03);
+  transform: translateY(-2px);
+}
+
+/* Responsiveness */
+@media (max-width: 768px) {
+  .stats-grid { grid-template-columns: repeat(2, 1fr) !important; }
+  .args-grid  { grid-template-columns: 1fr !important; }
+}

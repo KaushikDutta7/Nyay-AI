@@ -1,0 +1,10 @@
+google-genai
+langgraph
+fastapi
+uvicorn
+requests
+python-dotenv
+pydantic
+SQLAlchemy
+pdfplumber
+groq
